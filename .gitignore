@@ -1,0 +1,5 @@
+datos_privados/
+division_datos.py
+modelo_global.weights.h5
+pesos_usuario.npz
+__pycache__/Model.cpython-312.pyc
