@@ -27,3 +27,11 @@ Se usaron tres formas para construir el modelo global:
 3. Se juntan los archivos de todos los usuarios en la misma carpeta.
 4. Se ejecuta `GlobalModel.py` para obtener el modelo global y se guarda como `modelo_global.weights.h5`.
 
+## Ensayo: Comparación de métodos de agregación en Aprendizaje Federado
+
+<img width="579" alt="Screenshot 2025-05-02 at 5 54 57 p m" src="https://github.com/user-attachments/assets/24621108-4173-4880-9e80-5e54ce14d5ee" />
+
+En nuestro experimento, **FedAvg** y **FedProx** obtuvieron el mejor desempeño con una accuracy de 0.3731 y un F1-score macro de 0.2624, mientras que **FedMedian** tuvo resultados inferiores. Esto se debe a que FedAvg y FedProx, al promediar los pesos de los modelos locales, lograron mantener mejor la información aprendida, mientras que FedMedian, al usar la mediana, perdió detalles útiles de la distribución.
+
+Dado que el dataset MNIST está relativamente balanceado y las divisiones locales fueron similares, métodos simples como FedAvg fueron suficientes. FedProx no mejoró sobre FedAvg debido a un valor bajo de su parámetro de ajuste, por lo que en este caso, **FedAvg fue el método más eficaz**.
+
