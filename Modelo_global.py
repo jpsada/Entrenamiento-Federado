@@ -1,34 +1,59 @@
 import numpy as np
-from Model import create_model  # Asegúrate que el nombre es correcto
+from Model import create_model
+from sklearn.metrics import classification_report, accuracy_score
+import tensorflow as tf
+import pandas as pd
 
-# --- Cargar pesos guardados por los usuarios desde .npz ---
-pesos_npz = np.load("pesos_usuario.npz", allow_pickle=True)
-pesos_usuario1 = [pesos_npz[key] for key in pesos_npz]
+# --- Cargar pesos de usuarios (usa los 5 que tengas) ---
+usuarios = ["pesos_user1.npz", "pesos_user2.npz", "pesos_user3.npz", "pesos_user4.npz", "pesos_user5.npz"]
 
-# Si hay más usuarios, repite lo anterior para cada uno y colócalo en la lista
-pesos_lista = [pesos_usuario1]
+pesos_lista = []
+for archivo in usuarios:
+    data = np.load(archivo, allow_pickle=True)
+    pesos = [data[key] for key in data.files]  # Asegura el orden correcto
+    pesos_lista.append(pesos)
 
-# --- FedAvg ---
+# --- Métodos de agregación ---
 def fed_avg(pesos_list):
     return [np.mean(p, axis=0) for p in zip(*pesos_list)]
 
-# --- FedMedian ---
 def fed_median(pesos_list):
     return [np.median(p, axis=0) for p in zip(*pesos_list)]
 
-# --- FedProx ---
 def fed_prox(pesos_list, mu=0.01):
     avg = fed_avg(pesos_list)
     return [w - mu * (w - a) for w, a in zip(avg, avg)]
 
-# Aplicar agregación (puedes cambiar por fed_median o fed_prox)
-pesos_globales = fed_avg(pesos_lista)
+# --- Evaluar un modelo global ---
+def evaluar_modelo(pesos, nombre_metodo):
+    modelo = create_model()
+    modelo.set_weights(pesos)
 
-# Crear modelo y asignar pesos globales
-modelo_global = create_model()
-modelo_global.set_weights(pesos_globales)
+    (_, _), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+    x_test = x_test / 255.0  
 
-# Guardar
-modelo_global.save_weights("modelo_global.weights.h5")
-print("Modelo global guardado como 'modelo_global.weights.h5'")
+    y_pred = np.argmax(modelo.predict(x_test), axis=1)
+    acc = accuracy_score(y_test, y_pred)
+
+    report = classification_report(y_test, y_pred, output_dict=True)
+    print(f"Reporte para {nombre_metodo}:")
+    print(classification_report(y_test, y_pred))
+
+    return {
+        "Método": nombre_metodo,
+        "Accuracy": round(acc, 4),
+        "F1-score (macro)": round(report["macro avg"]["f1-score"], 4)
+    }
+
+# --- Ejecutar todos los métodos ---
+resultados = [
+    evaluar_modelo(fed_avg(pesos_lista), "FedAvg"),
+    evaluar_modelo(fed_median(pesos_lista), "FedMedian"),
+    evaluar_modelo(fed_prox(pesos_lista), "FedProx")
+]
+
+# --- Mostrar tabla resumen ---
+df_resultados = pd.DataFrame(resultados)
+print("Resumen comparativo:")
+print(df_resultados)
 
